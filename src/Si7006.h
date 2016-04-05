@@ -58,7 +58,7 @@ class Si7006 {
 		Si7006(void);
 			// Si7006 object
 			
-		boolean begin(byte _i2c_address = Si7006_ADDR);
+		boolean begin();
 			// Initialize Si7006 library with default address (0x40)
 			// Always returns true
 			
