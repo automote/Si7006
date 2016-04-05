@@ -62,12 +62,6 @@ class Si7006 {
 			// Initialize Si7006 library with default address (0x40)
 			// Always returns true
 			
-		float readTemperature(void);
-			// Returns the temperature from the sensor
-			
-		float readHumidity(void);
-			// Returns the relative humidity from the sensor
-			
 		uint16_t readStatus(void);
 			// Returns the status of the sensor
 			
@@ -77,8 +71,14 @@ class Si7006 {
 		void heater(boolean);
 			// Initializes the internal heater
 			
+		float readTemperature(void);
+			// Returns the temperature from the sensor
+			
+		float readHumidity(void);
+			// Returns the relative humidity from the sensor
+			
 		uint8_t crc8(const uint8_t *data, int len);
-			// Returns the CRC byte generated from the data 
+			// Returns the CRC byte generated from the data
 		
 	private:
 		boolean readTempHum(void);
@@ -86,9 +86,6 @@ class Si7006 {
 			
 		void writeCommand(uint16_t cmd);
 			// Writes command bytes to sensor
-			
-		boolean readData(void);
-			// Reads data from the sensor
 
 		byte _i2c_address;
 		float humidity, temp;
