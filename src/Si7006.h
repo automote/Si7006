@@ -39,7 +39,7 @@ version 0.1
 #define Si7006_MEAS_REL_HUMIDITY_NO_MASTER_MODE 0xF5
 #define Si7006_MEAS_TEMP_MASTER_MODE            0xE3
 #define Si7006_MEAS_TEMP_NO_MASTER_MODE         0xF3
-#define Si7006_READ_TEMP                        0xE0
+#define Si7006_READ_OLD_TEMP                    0xE0
 #define Si7006_RESET 							0xFE
 #define Si7006_WRITE_HUMIDITY_TEMP_CONTR		0xE6						
 #define Si7006_READ_HUMIDITY_TEMP_CONTR 		0xE7
@@ -62,16 +62,6 @@ class Si7006 {
 			// Initialize Si7006 library with default address (0x40)
 			// Always returns true
 			
-		boolean setPowerUp(void);
-			// Turn on LTR303, begin integration
-			// Returns true (1) if successful, false (0) if there was an I2C error
-			// (Also see getError() below)
-
-		boolean setPowerDown(void);
-			// Turn off LTR303
-			// Returns true (1) if successful, false (0) if there was an I2C error
-			// (Also see getError() below)
-		
 		boolean reset(void);
 			// SW Reset the sensor
 			// Returns true (1) if successful, false (0) if there was an I2C error
@@ -142,22 +132,25 @@ class Si7006 {
 			
 		boolean measureTemperature(float &temperature, boolean mode = false);
 			// Gets the Temperature data from the sensor
-			// If mode = false(0), Hold Master Mode is used
-			// If mode = true(1), No Hold Master Mode is used
+			// If mode = true(1), Hold Master Mode is used
+			// If mode = false(0), No Hold Master Mode is used
 			// Returns true (1) if successful, false (0) if there was an I2C error
 			// (Also see getError() below)
 			
 		boolean measureHumidity(float &humidity, boolean mode = false);
 			// Gets the Humidity data from the sensor
-			// If mode = false(0), Hold Master Mode is used
-			// If mode = true(1), No Hold Master Mode is used
+			// If mode = true(1), Hold Master Mode is used
+			// If mode = false(0), No Hold Master Mode is used
+			// Returns true (1) if successful, false (0) if there was an I2C error
+			// (Also see getError() below)
+			
+		boolean getOldTemperature(float &temperature);
+			// Gets the Old Temperature data from the sensor
 			// Returns true (1) if successful, false (0) if there was an I2C error
 			// (Also see getError() below)
 			
 		uint8_t crc8(const uint8_t *data, int len);
 			// Returns the CRC byte generated from the data
-			// Returns true (1) if successful, false (0) if there was an I2C error
-			// (Also see getError() below)
 			
 		byte getError(void);
 			// If any library command fails, you can retrieve an extended
