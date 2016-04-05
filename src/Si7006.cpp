@@ -36,22 +36,20 @@ Si7006::Si7006() {
 }
 
 
-boolean Si7006::begin(uint8_t i2caddr) {
+boolean Si7006::begin() {
 	// Initialize Si7006 library with default address (0x40)
 	// Always returns true
 	
+	_i2c_address = Si7006_ADDR;
 	Wire.begin();
-	_i2caddr = i2caddr;
-	reset();
-	//return (readStatus() == 0x40);
-	return true;
+	return(true);
 }
 
 uint16_t Si7006::readStatus(void) {
 	// Returns the status of the sensor
 	
 	writeCommand(SHT31_READSTATUS);
-	Wire.requestFrom(_i2caddr, (uint8_t)3);
+	Wire.requestFrom(_i2c_address, (uint8_t)3);
 	uint16_t stat = Wire.read();
 	stat <<= 8;
 	stat |= Wire.read();
@@ -62,7 +60,7 @@ uint16_t Si7006::readStatus(void) {
 void Si7006::reset(void) {
 	// SW Reset the sensor
 	
-	writeCommand(SHT31_SOFTRESET);
+	writeCommand(Si7006_RESET);
 	delay(10);
 }
 
@@ -126,7 +124,7 @@ boolean Si7006::readTempHum(void) {
 	writeCommand(SHT31_MEAS_HIGHREP);
 
 	delay(500);
-	Wire.requestFrom(_i2caddr, (uint8_t)6);
+	Wire.requestFrom(_i2c_address, (uint8_t)6);
 	if (Wire.available() != 6) 
 	return false;
 	for (uint8_t i=0; i<6; i++) {
@@ -166,8 +164,93 @@ boolean Si7006::readTempHum(void) {
 void Si7006::writeCommand(uint16_t cmd) {
 	// Writes command bytes to sensor
 	
-	Wire.beginTransmission(_i2caddr);
+	Wire.beginTransmission(_i2c_address);
 	Wire.write(cmd >> 8);
 	Wire.write(cmd & 0xFF);
 	Wire.endTransmission();  
+}
+
+boolean Si7006::readByte(byte address, byte &value) {
+	// Reads a byte from a Si7006 address
+	// Address: Si7006 address (0 to 15)
+	// Value will be set to stored byte
+	// Returns true (1) if successful, false (0) if there was an I2C error
+	// (Also see getError() above)
+
+	// Check if sensor present for read
+	Wire.beginTransmission(_i2c_address);
+	_error = Wire.endTransmission();
+
+	// Read requested byte
+	if (_error == 0)
+	{
+		Wire.requestFrom(_i2c_address,1);
+		if (Wire.available() == 1)
+		{
+			value = Wire.read();
+			return(true);
+		}
+	}
+	return(false);
+}
+
+boolean Si7006::writeByte(byte address, byte value) {
+	// Write a byte to a Si7006 address
+	// Address: Si7006 address (0 to 15)
+	// Value: byte to write to address
+	// Returns true (1) if successful, false (0) if there was an I2C error
+	// (Also see getError() above)
+
+	Wire.beginTransmission(_i2c_address);
+	// Write byte
+	Wire.write(value);
+	_error = Wire.endTransmission();
+	if (_error == 0)
+		return(true);
+
+	return(false);
+}
+
+boolean Si7006::readUInt(byte address, unsigned int &value) {
+	// Reads an unsigned integer (16 bits) from a Si7006 address (low byte first)
+	// Address: Si7006 address (0 to 15), low byte first
+	// Value will be set to stored unsigned integer
+	// Returns true (1) if successful, false (0) if there was an I2C error
+	// (Also see getError() above)
+
+	byte high, low;
+	
+	// Check if sensor present for read
+	Wire.beginTransmission(_i2c_address);
+	_error = Wire.endTransmission();
+
+	// Read two bytes (low and high)
+	if (_error == 0)
+	{
+		Wire.requestFrom(_i2c_address,2);
+		if (Wire.available() == 2)
+		{
+			low = Wire.read();
+			high = Wire.read();
+			// Combine bytes into unsigned int
+			value = word(high,low);
+			return(true);
+		}
+	}	
+	return(false);
+}
+
+boolean Si7006::writeUInt(byte address, unsigned int value) {
+	// Write an unsigned integer (16 bits) to a Si7006 address (low byte first)
+	// Address: Si7006 address (0 to 15), low byte first
+	// Value: unsigned int to write to address
+	// Returns true (1) if successful, false (0) if there was an I2C error
+	// (Also see getError() above)
+
+	// Split int into lower and upper bytes, write each byte
+	if (writeByte(address,lowByte(value)) 
+		&& writeByte(address + 1,highByte(value)))
+		return(true);
+
+	return(false);
 }
