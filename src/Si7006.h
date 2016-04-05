@@ -130,14 +130,14 @@ class Si7006 {
 			// Returns true (1) if successful, false (0) if there was an I2C error
 			// (Also see getError() below)
 			
-		boolean measureTemperature(float &temperature, boolean mode = false);
+		boolean getTemperature(float &temperature, boolean mode = false);
 			// Gets the Temperature data from the sensor
 			// If mode = true(1), Hold Master Mode is used
 			// If mode = false(0), No Hold Master Mode is used
 			// Returns true (1) if successful, false (0) if there was an I2C error
 			// (Also see getError() below)
 			
-		boolean measureHumidity(float &humidity, boolean mode = false);
+		boolean getHumidity(float &humidity, boolean mode = false);
 			// Gets the Humidity data from the sensor
 			// If mode = true(1), Hold Master Mode is used
 			// If mode = false(0), No Hold Master Mode is used

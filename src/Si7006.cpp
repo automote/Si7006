@@ -51,6 +51,7 @@ boolean Si7006::reset(void) {
 	// (Also see getError() below)
 	
 	return(writeByte(Si7006_RESET));
+	delay(10);
 }
 			
 boolean Si7006::getTempControl(byte &res, boolean voltage, boolean heater) {
@@ -189,17 +190,32 @@ boolean Si7006::getFirmwareVer(byte &firmware) {
 	return(read1ByteData(Si7006_FIRMWARE_0,Si7006_FIRMWARE_1,&firmware));
 }
 			
-boolean Si7006::measureTemperature(float &temperature, boolean mode = false) {
+boolean Si7006::getTemperature(float &temperature, boolean mode = false) {
 	// Gets the Temperature data from the sensor
 	// If mode = true(1), Hold Master Mode is used
 	// If mode = false(0), No Hold Master Mode is used
 	// Returns true (1) if successful, false (0) if there was an I2C error
 	// (Also see getError() below)
 	
-	if(mode)
-		return(readUInt(Si7006_MEAS_TEMP_MASTER_MODE,temperature));
-	else
-		return(readUInt(Si7006_MEAS_TEMP_NO_MASTER_MODE,temperature));
+	boolean success = false;
+	
+	if(mode) {
+		if(readUInt(Si7006_MEAS_TEMP_MASTER_MODE,temperature)) {
+			success = true;
+		}
+	}
+	else {
+		if(readUInt(Si7006_MEAS_TEMP_NO_MASTER_MODE,temperature)) {
+			success = true;
+		}
+	}
+	
+	if(success) {
+	temperature = (172.72 * temperature)/65536 - 46.85;
+	return(true);
+	}
+
+	return(false);
 }		
 		
 boolean Si7006::getOldTemperature(float &temperature) {
@@ -207,20 +223,40 @@ boolean Si7006::getOldTemperature(float &temperature) {
 	// Returns true (1) if successful, false (0) if there was an I2C error
 	// (Also see getError() below)
 	
-	return(readUInt(Si7006_READ_OLD_TEMP,temperature));
+	if(readUInt(Si7006_READ_OLD_TEMP,temperature)) {
+	temperature = (172.72 * temperature)/65536 - 46.85;
+	return(true);
+	}
+	
+	return(false);
 }
 		
-boolean Si7006::measureHumidity(float &humidity, boolean mode = false) {
+boolean Si7006::getHumidity(float &humidity, boolean mode = false) {
 	// Gets the Humidity data from the sensor
 	// If mode = true(1), Hold Master Mode is used
 	// If mode = false(0), No Hold Master Mode is used
 	// Returns true (1) if successful, false (0) if there was an I2C error
 	// (Also see getError() below)
 	
-	if(mode)
-		return(readUInt(Si7006_MEAS_REL_HUMIDITY_MASTER_MODE,temperature));
-	else
-		return(readUInt(Si7006_MEAS_REL_HUMIDITY_NO_MASTER_MODE,temperature));
+	boolean success = false;
+	
+	if(mode) {
+		if(readUInt(Si7006_MEAS_REL_HUMIDITY_MASTER_MODE,humidity)) {
+			success = true;
+		}
+	}
+	else {
+		if(rreadUInt(Si7006_MEAS_REL_HUMIDITY_NO_MASTER_MODE,humidity)) {
+			success = true;
+		}
+	}
+	
+	if(success) {
+	humidity = (125 * humidity)/65536 - 6;
+	return(true);
+	}
+	
+	return(false);
 }
 			
 byte Si7006::crc8(const uint8_t *data, int len) {
@@ -332,207 +368,5 @@ boolean Si7006::readUInt(byte address, unsigned int &value) {
 			return(true);
 		}
 	}	
-	return(false);
-}
-
-boolean Si7006::writeUInt(byte address, unsigned int value) {
-	// Write an unsigned integer (16 bits) to a Si7006 address (low byte first)
-	// Address: Si7006 address (0 to 15), low byte first
-	// Value: unsigned int to write to address
-	// Returns true (1) if successful, false (0) if there was an I2C error
-	// (Also see getError() above)
-	
-	// Split int into lower and upper bytes, write each byte
-	if (writeByte(address,lowByte(value)) 
-		&& writeByte(address + 1,highByte(value)))
-		return(true);
-
-	return(false);
-}
-
-========================================================
-
-
-uint16_t Si7006::readStatus(void) {
-	// Returns the status of the sensor
-	
-	writeCommand(SHT31_READSTATUS);
-	Wire.requestFrom(_i2c_address, (uint8_t)3);
-	uint16_t stat = Wire.read();
-	stat <<= 8;
-	stat |= Wire.read();
-	Serial.println(stat, HEX);
-	return stat;
-}
-
-void Si7006::reset(void) {
-	// SW Reset the sensor
-	
-	writeCommand(Si7006_RESET);
-	delay(10);
-}
-
-void Si7006::heater(boolean h) {
-	// Initializes the internal heater
-	
-	if (h)
-	writeCommand(SHT31_HEATEREN);
-	else
-	writeCommand(SHT31_HEATERDIS);
-}
-
-float Si7006::readTemperature(void) {
-	// Returns the temperature from the sensor
-	if (! readTempHum()) return NAN;
-	return temp;
-}  
-
-float Si7006::readHumidity(void) {
-	// Returns the relative humidity from the sensor
-
-	if (! readTempHum()) return NAN;
-	return humidity;
-}
-
-
-
-// Private Functions
-
-boolean Si7006::readTempHum(void) {
-	// Reads the temperature and relative humidity from the sensor
-	
-	uint8_t readbuffer[6];
-
-	writeCommand(SHT31_MEAS_HIGHREP);
-
-	delay(500);
-	Wire.requestFrom(_i2c_address, (uint8_t)6);
-	if (Wire.available() != 6) 
-	return false;
-	for (uint8_t i=0; i<6; i++) {
-	readbuffer[i] = Wire.read();
-	//  Serial.print("0x"); Serial.println(readbuffer[i], HEX);
-	}
-	uint16_t ST, SRH;
-	ST = readbuffer[0];
-	ST <<= 8;
-	ST |= readbuffer[1];
-
-	if (readbuffer[2] != crc8(readbuffer, 2)) return false;
-
-	SRH = readbuffer[3];
-	SRH <<= 8;
-	SRH |= readbuffer[4];
-
-	if (readbuffer[5] != crc8(readbuffer+3, 2)) return false;
-
-	// Serial.print("ST = "); Serial.println(ST);
-	double stemp = ST;
-	stemp *= 175;
-	stemp /= 0xffff;
-	stemp = -45 + stemp;
-	temp = stemp;
-
-	//  Serial.print("SRH = "); Serial.println(SRH);
-	double shum = SRH;
-	shum *= 100;
-	shum /= 0xFFFF;
-
-	humidity = shum;
-
-	return true;
-}
-
-void Si7006::writeCommand(uint16_t cmd) {
-	// Writes command bytes to sensor
-	
-	Wire.beginTransmission(_i2c_address);
-	Wire.write(cmd >> 8);
-	Wire.write(cmd & 0xFF);
-	Wire.endTransmission();  
-}
-
-boolean Si7006::readByte(byte address, byte &value) {
-	// Reads a byte from a Si7006 address
-	// Address: Si7006 address (0 to 15)
-	// Value will be set to stored byte
-	// Returns true (1) if successful, false (0) if there was an I2C error
-	// (Also see getError() above)
-
-	// Check if sensor present for read
-	Wire.beginTransmission(_i2c_address);
-	_error = Wire.endTransmission();
-
-	// Read requested byte
-	if (_error == 0)
-	{
-		Wire.requestFrom(_i2c_address,1);
-		if (Wire.available() == 1)
-		{
-			value = Wire.read();
-			return(true);
-		}
-	}
-	return(false);
-}
-
-boolean Si7006::writeByte(byte address, byte value) {
-	// Write a byte to a Si7006 address
-	// Address: Si7006 address (0 to 15)
-	// Value: byte to write to address
-	// Returns true (1) if successful, false (0) if there was an I2C error
-	// (Also see getError() above)
-
-	Wire.beginTransmission(_i2c_address);
-	// Write byte
-	Wire.write(value);
-	_error = Wire.endTransmission();
-	if (_error == 0)
-		return(true);
-
-	return(false);
-}
-
-boolean Si7006::readUInt(byte address, unsigned int &value) {
-	// Reads an unsigned integer (16 bits) from a Si7006 address (low byte first)
-	// Address: Si7006 address (0 to 15), low byte first
-	// Value will be set to stored unsigned integer
-	// Returns true (1) if successful, false (0) if there was an I2C error
-	// (Also see getError() above)
-
-	byte high, low;
-	
-	// Check if sensor present for read
-	Wire.beginTransmission(_i2c_address);
-	_error = Wire.endTransmission();
-
-	// Read two bytes (low and high)
-	if (_error == 0)
-	{
-		Wire.requestFrom(_i2c_address,2);
-		if (Wire.available() == 2)
-		{
-			low = Wire.read();
-			high = Wire.read();
-			// Combine bytes into unsigned int
-			value = word(high,low);
-			return(true);
-		}
-	}	
-	return(false);
-}
-
-boolean Si7006::writeUInt(byte address, unsigned int value) {
-	// Write an unsigned integer (16 bits) to a Si7006 address (low byte first)
-	// Address: Si7006 address (0 to 15), low byte first
-	// Value: unsigned int to write to address
-	// Returns true (1) if successful, false (0) if there was an I2C error
-	// (Also see getError() above)
-
-	// Split int into lower and upper bytes, write each byte
-	if (writeByte(address,lowByte(value)) 
-		&& writeByte(address + 1,highByte(value)))
-		return(true);
-
 	return(false);
 }
