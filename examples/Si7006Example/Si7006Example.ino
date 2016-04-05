@@ -26,15 +26,23 @@ ESP8266				5      4
 #include <Wire.h>
 #include <Si7006.h>
 
-Si7006 tempHumi; 
+Si7006 si7006; 
 
 void setup() {
-  Serial.begin(9600);
-  Serial.println("Si7006 test");
-  if (! sht31.begin(0x44)) {   // Set to 0x45 for alternate i2c addr
-    Serial.println("Couldn't find SHT31");
-    while (1) delay(1);
-  }
+	
+	// Initialize the Serial port:  
+	Serial.begin(9600);
+	Serial.println("Si7006-A20 example sketch");
+
+	// Initialize the Si7006 library
+	// You can pass nothing to light.begin() for the default I2C address (0x40)
+	si7006.begin();
+	
+	if (!si7006.begin()) {
+	Serial.println("Couldn't find Si7006");
+	while (1)
+		delay(1); // Do Nothing
+	}
 }
 
 
