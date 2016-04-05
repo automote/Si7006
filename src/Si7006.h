@@ -184,10 +184,17 @@ class Si7006 {
 			// Returns true (1) if successful, false (0) if there was an I2C error
 			// (Also see getError() above)
 
-		boolean writeUInt(byte address, unsigned int value);
-			// Write an unsigned integer (16 bits) to a LTR303 address (low byte first)
-			// Address: LTR303 address (0 to 15), low byte first
-			// Value: unsigned int to write to address
+		boolean read1ByteData(byte address1, byte address1, &value);
+			// Reads a byte from a Si7006 sensor when provided with 2 addresses
+			// Address: Si7006 address (0 to 15)
+			// Value will be set to stored byte
+			// Returns true (1) if successful, false (0) if there was an I2C error
+			// (Also see getError() above)
+			
+		boolean read4ByteData(byte address1, byte address2, unsigned long &value);
+			// Reads an unsigned long (32 bits) from a Si7006 address (high byte first)
+			// Address: Si7006 register address (0 to 15), high byte first
+			// Value will be set to stored unsigned long
 			// Returns true (1) if successful, false (0) if there was an I2C error
 			// (Also see getError() above)
 		

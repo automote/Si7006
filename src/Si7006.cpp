@@ -169,10 +169,15 @@ boolean Si7006::getDeviceID(double &deviceID) {
 	// Returns true (1) if successful, false (0) if there was an I2C error
 	// (Also see getError() below)
 	
-	if(read4ByteData(Si7006_READ_ID_LOW_0,Si7006_READ_ID_LOW_1,&deviceID)) {
+	unsigned long tempDeviceID;
+	// read first 4 bytes
+	if(read4ByteData(Si7006_READ_ID_LOW_0,Si7006_READ_ID_LOW_1,tempDeviceID)) {
+		deviceID |= tempDeviceID;
 		deviceID <<= 32;
+		
 		// read the next 4 bytes
-		if(read4ByteData(Si7006_READ_ID_HIGH_0,Si7006_READ_ID_HIGH_1,&deviceID)) {
+		if(read4ByteData(Si7006_READ_ID_HIGH_0,Si7006_READ_ID_HIGH_1,tempDeviceID)) {
+			deviceID |= tempDeviceID;
 			// return if successful
 			return(true);
 		}
@@ -198,24 +203,19 @@ boolean Si7006::getTemperature(float &temperature, boolean mode = false) {
 	// (Also see getError() below)
 	
 	boolean success = false;
+	unsigned int tempTemperature;
 	
 	if(mode) {
-		if(readUInt(Si7006_MEAS_TEMP_MASTER_MODE,temperature)) {
-			success = true;
-		}
+		if(!readUInt(Si7006_MEAS_TEMP_MASTER_MODE,tempTemperature))
+			return(false);
 	}
 	else {
-		if(readUInt(Si7006_MEAS_TEMP_NO_MASTER_MODE,temperature)) {
-			success = true;
-		}
+		if(!readUInt(Si7006_MEAS_TEMP_NO_MASTER_MODE,tempTemperature))
+			return(false);
 	}
 	
-	if(success) {
-	temperature = (172.72 * temperature)/65536 - 46.85;
+	temperature = (172.72 * tempTemperature)/65536 - 46.85;
 	return(true);
-	}
-
-	return(false);
 }		
 		
 boolean Si7006::getOldTemperature(float &temperature) {
@@ -223,9 +223,10 @@ boolean Si7006::getOldTemperature(float &temperature) {
 	// Returns true (1) if successful, false (0) if there was an I2C error
 	// (Also see getError() below)
 	
-	if(readUInt(Si7006_READ_OLD_TEMP,temperature)) {
-	temperature = (172.72 * temperature)/65536 - 46.85;
-	return(true);
+	unsigned int tempTemperature;
+	if(readUInt(Si7006_READ_OLD_TEMP,tempTemperature)) {
+		temperature = (172.72 * tempTemperature)/65536 - 46.85;
+		return(true);
 	}
 	
 	return(false);
@@ -239,24 +240,19 @@ boolean Si7006::getHumidity(float &humidity, boolean mode = false) {
 	// (Also see getError() below)
 	
 	boolean success = false;
+	unsigned int tempHumidity;
 	
 	if(mode) {
-		if(readUInt(Si7006_MEAS_REL_HUMIDITY_MASTER_MODE,humidity)) {
-			success = true;
-		}
+		if(!readUInt(Si7006_MEAS_REL_HUMIDITY_MASTER_MODE,tempHumidity))
+			return(false);
 	}
 	else {
-		if(rreadUInt(Si7006_MEAS_REL_HUMIDITY_NO_MASTER_MODE,humidity)) {
-			success = true;
-		}
+		if(!readUInt(Si7006_MEAS_REL_HUMIDITY_NO_MASTER_MODE,tempHumidity))
+			return(false);
 	}
 	
-	if(success) {
-	humidity = (125 * humidity)/65536 - 6;
+	humidity = (125 * tempHumidity)/65536 - 6;
 	return(true);
-	}
-	
-	return(false);
 }
 			
 byte Si7006::crc8(const uint8_t *data, int len) {
@@ -299,7 +295,7 @@ byte Si7006::getError(void) {
 	return(_error);
 }
 		
-// Private Function Definitions
+// Private Functions:
 		
 boolean Si7006::readByte(byte address, byte &value) {
 	// Reads a byte from a Si7006 address
@@ -310,6 +306,7 @@ boolean Si7006::readByte(byte address, byte &value) {
 	
 	// Check if sensor present for read
 	Wire.beginTransmission(_i2c_address);
+	Wire.write(address);
 	_error = Wire.endTransmission();
 
 	// Read requested byte
@@ -334,6 +331,7 @@ boolean Si7006::writeByte(byte address, byte value) {
 	
 	Wire.beginTransmission(_i2c_address);
 	// Write byte
+	Wire.write(address);
 	Wire.write(value);
 	_error = Wire.endTransmission();
 	if (_error == 0)
@@ -353,6 +351,7 @@ boolean Si7006::readUInt(byte address, unsigned int &value) {
 	
 	// Check if sensor present for read
 	Wire.beginTransmission(_i2c_address);
+	Wire.write(address);
 	_error = Wire.endTransmission();
 
 	// Read two bytes (low and high)
@@ -368,5 +367,60 @@ boolean Si7006::readUInt(byte address, unsigned int &value) {
 			return(true);
 		}
 	}	
+	return(false);
+}
+
+boolean Si7006::read1ByteData(byte address1, byte address2, &value) {
+	// Reads a byte from a Si7006 sensor when provided with 2 addresses
+	// Address: Si7006 address (0 to 15)
+	// Value will be set to stored byte
+	// Returns true (1) if successful, false (0) if there was an I2C error
+	// (Also see getError() above)
+	
+	// Check if sensor present for read
+	Wire.beginTransmission(_i2c_address);
+	Wire.write(address1);
+	Wire.write(address2);
+	_error = Wire.endTransmission();
+
+	// Read requested byte
+	if (_error == 0)
+	{
+		Wire.requestFrom(_i2c_address,1);
+		if (Wire.available() == 1)
+		{
+			value = Wire.read();
+			return(true);
+		}
+	}
+	return(false);
+}
+
+boolean Si7006::read4ByteData(byte address1, byte address2, unsigned long &value) {
+	// Reads an unsigned long (32 bits) from a Si7006 address (high byte first)
+	// Address: Si7006 register addresses (0 to 15), high byte first
+	// Value will be set to stored unsigned long
+	// Returns true (1) if successful, false (0) if there was an I2C error
+	// (Also see getError() above)
+	
+	// Check if sensor present for read
+	Wire.beginTransmission(_i2c_address);
+	Wire.write(address1);
+	Wire.write(address2);
+	_error = Wire.endTransmission();
+
+	// Read requested byte
+	if (_error == 0)
+	{
+		Wire.requestFrom(_i2c_address,4);
+		if (Wire.available() == 4)
+		{
+			value |= Wire.read() << 24;
+			value |= Wire.read() << 16;
+			value |= Wire.read() << 8;
+			value |= Wire.read();
+ 			return(true);
+		}
+	}
 	return(false);
 }
