@@ -1,0 +1,13 @@
+{
+  "name": "HDC1000",
+  "keywords": "sensor, temperature, humidity",
+  "description": "A temperature and humidity sensor library for HDC1000",
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/hotchpotch/Arduino-HDC1000.git"
+  },
+  "frameworks": "arduino",
+  "platforms": "atmelavr",
+  "examples": "examples/*/*.ino"
+}
