@@ -1,11 +1,11 @@
 {
-  "name": "HDC1000",
+  "name": "Si7006",
   "keywords": "sensor, temperature, humidity",
-  "description": "A temperature and humidity sensor library for HDC1000",
+  "description": "A temperature and humidity sensor library for Si7006",
   "repository":
   {
     "type": "git",
-    "url": "https://github.com/hotchpotch/Arduino-HDC1000.git"
+    "url": "https://github.com/automote/Si7006"
   },
   "frameworks": "arduino",
   "platforms": "atmelavr",
