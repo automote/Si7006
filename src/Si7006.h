@@ -119,7 +119,7 @@ class Si7006 {
 
 		boolean getDeviceID(double &deviceID);
 			// Gets the Device ID of the chip
-			// Default value is 0x06
+			// Default value of MSB 0x06
 			// Returns true (1) if successful, false (0) if there was an I2C error
 			// (Also see getError() below)
 

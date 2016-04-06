@@ -26,7 +26,7 @@ ESP8266				5      4
 #include <Wire.h>
 #include <Si7006.h>
 
-Si7006 si7006; 
+Si7006 tempNHum; 
 
 void setup() {
 	
@@ -38,17 +38,69 @@ void setup() {
 	// You can pass nothing to light.begin() for the default I2C address (0x40)
 	si7006.begin();
 	
-	if (!si7006.begin()) {
-	Serial.println("Couldn't find Si7006");
-	while (1)
-		delay(1); // Do Nothing
+	if (!tempNHum.begin()) {
+		Serial.println("Couldn't find Si7006");
+		while (1)
+			delay(1); // Do Nothing
 	}
+	
+	// Get factory ID from sensor:
+	// (Just for fun, you don't need to do this to operate the sensor)
+	
+	double ID;
+
+	if (tempNHum.getDeviceID(ID)) {
+		Serial.print("Got Sensor Part ID: 0X");
+		// Default value of MSB 0x06
+		Serial.println(ID,HEX);
+	}
+	// Most library commands will return true if communications was successful,
+	// and false if there was a problem. You can ignore this returned value,
+	// or check whether a command worked correctly and retrieve an error code:
+	else {
+		byte error = tempNHum.getError();
+		printError(error);
+	}
+	
+	// Gets the Firmware Version of the chip
+	// Default value is 0xFF for version 1.0 or 0x20 for version 2.0
+	byte firmwareVer;
+	
+	if(getFirmwareVer(firmwareVer)) {
+		Serial.print("Got Sensor Firmware Version: 0X");
+		Serial.println(firmwareVer,HEX);
+	}
+	else {
+		byte error = tempNHum.getError();
+		printError(error);
+	}
+	
+	// Gets the contents RH/Temp User Register of the sensor
+	byte resolution;
+	boolean voltage, heaterStatus;
+	tempNHum.getTempControl(resolution, voltage, heaterStatus);
+	Serial.print("Resolution is: ");
+	Serial.println(resolution);
+	
+	// Setting the resolution and heater disable
+	resolution = 0x00;
+	heaterStatus = false;
+	tempNHum.setTempControl(resolution, voltage, heaterStatus);
+	
+	// Getting heater current
+	byte heaterCurrent;
+	tempNHum.getHeaterControl(heaterCurrent);
+	Serial.print("Heater Current is ");
+	Serial.println(heaterCurrent);
+	
+	// Setting heater current
+	tempNHum.setHeaterControl(heaterCurrent);
 }
 
 
 void loop() {
-  float t = sht31.readTemperature();
-  float h = sht31.readHumidity();
+  float temp = tempNHum.readTemperature();
+  float h = tempNHum.readHumidity();
 
   if (! isnan(t)) {  // check if 'is not a number'
     Serial.print("Temp *C = "); Serial.println(t);
@@ -63,4 +115,33 @@ void loop() {
   }
   Serial.println();
   delay(1000);
+}
+
+void printError(byte error) {
+  // If there's an I2C error, this function will
+  // print out an explanation.
+
+  Serial.print("I2C error: ");
+  Serial.print(error,DEC);
+  Serial.print(", ");
+  
+  switch(error) {
+    case 0:
+      Serial.println("success");
+      break;
+    case 1:
+      Serial.println("data too long for transmit buffer");
+      break;
+    case 2:
+      Serial.println("received NACK on address (disconnected?)");
+      break;
+    case 3:
+      Serial.println("received NACK on data");
+      break;
+    case 4:
+      Serial.println("other error");
+      break;
+    default:
+      Serial.println("unknown error");
+  }
 }
