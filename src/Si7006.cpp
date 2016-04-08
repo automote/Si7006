@@ -39,7 +39,7 @@ boolean Si7006::begin(void) {
 	// Initialize Si7006 library with default address (0x40)
 	// Always returns true
 	
-	_i2c_address = LTR303_ADDR;
+	_i2c_address = Si7006_ADDR;
 	Wire.begin();
 	return(true);
 }
@@ -50,8 +50,15 @@ boolean Si7006::reset(void) {
 	// Returns true (1) if successful, false (0) if there was an I2C error
 	// (Also see getError() below)
 	
-	return(writeByte(Si7006_RESET));
-	delay(10);
+	// In reset we write default value to USER Register
+	byte res = 0x00;
+	boolean heater = false;
+	if(setTempControl(res, heater)) {
+		delay(15);
+		return(true);
+	}
+	
+	return(false);
 }
 			
 boolean Si7006::getTempControl(byte &res, boolean voltage, boolean heater) {
@@ -90,7 +97,7 @@ boolean Si7006::getTempControl(byte &res, boolean voltage, boolean heater) {
 	return(false);		
 }
 
-boolean Si7006::setTempControl(byte res, boolean voltage = false, boolean heater = false) {
+boolean Si7006::setTempControl(byte res, boolean heater) {
 	// Sets the contents RH/Temp User Register of the sensor
 	// Gets the contents RH/Temp User Register of the sensor
 	// res uses D7 and D0 bit
@@ -98,9 +105,6 @@ boolean Si7006::setTempControl(byte res, boolean voltage = false, boolean heater
 	// If res = 1, RH is set to 8 bit & temp 12 bit resolution
 	// If res = 2, RH is set to 10 bit & temp 13 bit resolution
 	// If res = 4, RH is set to 11 bit & temp 11 bit resolution
-	//----------------------------------------------------------
-	// If voltage = false(0), VDD OK (default)
-	// If voltage = true(1), VDD LOW
 	//----------------------------------------------------------
 	// If heater = false(0), On-chip Heater is disabled (default)
 	// If heater = true(1), On-chip Heater is disabled
@@ -116,9 +120,6 @@ boolean Si7006::setTempControl(byte res, boolean voltage = false, boolean heater
 	
 	// control byte logic
 	control |= (res & 0x02) << 6 | (res & 0x01);
-	if(voltage) {
-		control |= 0x40;
-	}
 	
 	if(heater) {
 		control |= 0x04;
@@ -126,7 +127,6 @@ boolean Si7006::setTempControl(byte res, boolean voltage = false, boolean heater
 	
 	return(writeByte(Si7006_WRITE_HUMIDITY_TEMP_CONTR,control));
 }			
-}
 			
 boolean Si7006::getHeaterControl(byte &heaterCurrent) {
 	// Gets the Heater current of the On-chip Heater
@@ -161,7 +161,6 @@ boolean Si7006::setHeaterControl(byte heaterCurrent){
 	}
 	return(writeByte(Si7006_WRITE_HEATER_CONTR,heaterCurrent));
 }
-		
 
 boolean Si7006::getDeviceID(double &deviceID) {
 	// Gets the Device ID of the chip
@@ -170,14 +169,15 @@ boolean Si7006::getDeviceID(double &deviceID) {
 	// (Also see getError() below)
 	
 	unsigned long tempDeviceID;
+	//char deviceID[8];
 	// read first 4 bytes
 	if(read4ByteData(Si7006_READ_ID_LOW_0,Si7006_READ_ID_LOW_1,tempDeviceID)) {
-		deviceID |= tempDeviceID;
-		deviceID <<= 32;
+		deviceID = (double)tempDeviceID;
+		//deviceID <<= 32;
 		
 		// read the next 4 bytes
 		if(read4ByteData(Si7006_READ_ID_HIGH_0,Si7006_READ_ID_HIGH_1,tempDeviceID)) {
-			deviceID |= tempDeviceID;
+			deviceID += double(tempDeviceID) * pow(2,32);
 			// return if successful
 			return(true);
 		}
@@ -192,10 +192,10 @@ boolean Si7006::getFirmwareVer(byte &firmware) {
 	// Returns true (1) if successful, false (0) if there was an I2C error
 	// (Also see getError() below)
 	
-	return(read1ByteData(Si7006_FIRMWARE_0,Si7006_FIRMWARE_1,&firmware));
+	return(read1ByteData(Si7006_FIRMWARE_0, Si7006_FIRMWARE_1, firmware));
 }
 			
-boolean Si7006::getTemperature(float &temperature, boolean mode = false) {
+boolean Si7006::getTemperature(float &temperature, boolean mode) {
 	// Gets the Temperature data from the sensor
 	// If mode = true(1), Hold Master Mode is used
 	// If mode = false(0), No Hold Master Mode is used
@@ -214,8 +214,13 @@ boolean Si7006::getTemperature(float &temperature, boolean mode = false) {
 			return(false);
 	}
 	
-	temperature = (172.72 * tempTemperature)/65536 - 46.85;
-	return(true);
+	// Check if temperature is correct by ANDing with 0xFFFC
+	if(tempTemperature & 0xFFFC) {
+		temperature = (172.72 * tempTemperature)/65536 - 46.85;
+		return(true);
+	}
+	
+	return(false);
 }		
 		
 boolean Si7006::getOldTemperature(float &temperature) {
@@ -225,14 +230,17 @@ boolean Si7006::getOldTemperature(float &temperature) {
 	
 	unsigned int tempTemperature;
 	if(readUInt(Si7006_READ_OLD_TEMP,tempTemperature)) {
-		temperature = (172.72 * tempTemperature)/65536 - 46.85;
-		return(true);
+		// Check if temperature is correct by ANDing with 0xFFFC
+		if(tempTemperature & 0xFFFC) {
+			temperature = (172.72 * tempTemperature)/65536 - 46.85;
+			return(true);
+		}
 	}
 	
 	return(false);
 }
 		
-boolean Si7006::getHumidity(float &humidity, boolean mode = false) {
+boolean Si7006::getHumidity(float &humidity, boolean mode) {
 	// Gets the Humidity data from the sensor
 	// If mode = true(1), Hold Master Mode is used
 	// If mode = false(0), No Hold Master Mode is used
@@ -251,8 +259,13 @@ boolean Si7006::getHumidity(float &humidity, boolean mode = false) {
 			return(false);
 	}
 	
-	humidity = (125 * tempHumidity)/65536 - 6;
-	return(true);
+	// Check if humidity is correct by ANDing with 0xFFFE
+	if(tempHumidity & 0xFFFE) {
+		humidity = (125 * tempHumidity)/65536 - 6;
+		return(true);
+	}
+	
+	return(false);
 }
 			
 byte Si7006::crc8(const uint8_t *data, int len) {
@@ -370,7 +383,7 @@ boolean Si7006::readUInt(byte address, unsigned int &value) {
 	return(false);
 }
 
-boolean Si7006::read1ByteData(byte address1, byte address2, &value) {
+boolean Si7006::read1ByteData(byte address1, byte address2, byte &value) {
 	// Reads a byte from a Si7006 sensor when provided with 2 addresses
 	// Address: Si7006 address (0 to 15)
 	// Value will be set to stored byte

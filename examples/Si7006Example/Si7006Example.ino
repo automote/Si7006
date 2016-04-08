@@ -36,7 +36,7 @@ void setup() {
 
 	// Initialize the Si7006 library
 	// You can pass nothing to light.begin() for the default I2C address (0x40)
-	si7006.begin();
+	tempNHum.begin();
 	
 	if (!tempNHum.begin()) {
 		Serial.println("Couldn't find Si7006");
@@ -66,7 +66,7 @@ void setup() {
 	// Default value is 0xFF for version 1.0 or 0x20 for version 2.0
 	byte firmwareVer;
 	
-	if(getFirmwareVer(firmwareVer)) {
+	if(tempNHum.getFirmwareVer(firmwareVer)) {
 		Serial.print("Got Sensor Firmware Version: 0X");
 		Serial.println(firmwareVer,HEX);
 	}
@@ -85,7 +85,7 @@ void setup() {
 	// Setting the resolution and heater disable
 	resolution = 0x00;
 	heaterStatus = false;
-	tempNHum.setTempControl(resolution, voltage, heaterStatus);
+	tempNHum.setTempControl(resolution, heaterStatus);
 	
 	// Getting heater current
 	byte heaterCurrent;
@@ -99,21 +99,33 @@ void setup() {
 
 
 void loop() {
-  float temp = tempNHum.readTemperature();
-  float h = tempNHum.readHumidity();
+	float temp;
+	float humidity;
+	boolean mode = false;
 
-  if (! isnan(t)) {  // check if 'is not a number'
-    Serial.print("Temp *C = "); Serial.println(t);
-  } else { 
-    Serial.println("Failed to read temperature");
-  }
-  
-  if (! isnan(h)) {  // check if 'is not a number'
-    Serial.print("Hum. % = "); Serial.println(h);
-  } else { 
-    Serial.println("Failed to read humidity");
-  }
-  Serial.println();
+	// Read temperature
+	if(tempNHum.getTemperature(temp, mode)) {
+		Serial.print("Temp *C = ");
+		Serial.println(temp);
+	}
+	else{
+		Serial.println("Failed to read temperature");
+		byte error = tempNHum.getError();
+		printError(error);
+	}
+
+	// Read humidity
+	if(tempNHum.getHumidity(humidity, mode)) {
+		Serial.print("Humidity = ");
+		Serial.print(humidity);
+		Serial.println("%");
+	}
+	else {
+		Serial.println("Failed to read humidity");
+		byte error = tempNHum.getError();
+		printError(error);
+	}
+
   delay(1000);
 }
 

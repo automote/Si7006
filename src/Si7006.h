@@ -83,7 +83,7 @@ class Si7006 {
 			// Returns true (1) if successful, false (0) if there was an I2C error
 			// (Also see getError() below)
 			
-		boolean setTempControl(byte res, boolean voltage = false, boolean heater = false);
+		boolean setTempControl(byte res, boolean heater);
 			// Sets the contents RH/Temp User Register of the sensor
 			// Gets the contents RH/Temp User Register of the sensor
 			// res uses D7 and D0 bit
@@ -91,9 +91,6 @@ class Si7006 {
 			// If res = 1, RH is set to 8 bit & temp 12 bit resolution
 			// If res = 2, RH is set to 10 bit & temp 13 bit resolution
 			// If res = 4, RH is set to 11 bit & temp 11 bit resolution
-			//----------------------------------------------------------
-			// If voltage = false(0), VDD OK (default)
-			// If voltage = true(1), VDD LOW
 			//----------------------------------------------------------
 			// If heater = false(0), On-chip Heater is disabled (default)
 			// If heater = true(1), On-chip Heater is disabled
@@ -130,14 +127,14 @@ class Si7006 {
 			// Returns true (1) if successful, false (0) if there was an I2C error
 			// (Also see getError() below)
 			
-		boolean getTemperature(float &temperature, boolean mode = false);
+		boolean getTemperature(float &temperature, boolean mode);
 			// Gets the Temperature data from the sensor
 			// If mode = true(1), Hold Master Mode is used
 			// If mode = false(0), No Hold Master Mode is used
 			// Returns true (1) if successful, false (0) if there was an I2C error
 			// (Also see getError() below)
 			
-		boolean getHumidity(float &humidity, boolean mode = false);
+		boolean getHumidity(float &humidity, boolean mode);
 			// Gets the Humidity data from the sensor
 			// If mode = true(1), Hold Master Mode is used
 			// If mode = false(0), No Hold Master Mode is used
@@ -184,7 +181,7 @@ class Si7006 {
 			// Returns true (1) if successful, false (0) if there was an I2C error
 			// (Also see getError() above)
 
-		boolean read1ByteData(byte address1, byte address1, &value);
+		boolean read1ByteData(byte address1, byte address2, byte &value);
 			// Reads a byte from a Si7006 sensor when provided with 2 addresses
 			// Address: Si7006 address (0 to 15)
 			// Value will be set to stored byte
