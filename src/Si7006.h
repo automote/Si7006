@@ -114,7 +114,7 @@ class Si7006 {
 			// (Also see getError() below)
 		
 
-		boolean getDeviceID(double &deviceID);
+		boolean getDeviceID(char (&deviceID)[8]);
 			// Gets the Device ID of the chip
 			// Default value of MSB 0x06
 			// Returns true (1) if successful, false (0) if there was an I2C error
@@ -188,7 +188,7 @@ class Si7006 {
 			// Returns true (1) if successful, false (0) if there was an I2C error
 			// (Also see getError() above)
 			
-		boolean read4ByteData(byte address1, byte address2, unsigned long &value);
+		boolean read4ByteData(byte address1, byte address2, char (&value)[4]);
 			// Reads an unsigned long (32 bits) from a Si7006 address (high byte first)
 			// Address: Si7006 register address (0 to 15), high byte first
 			// Value will be set to stored unsigned long

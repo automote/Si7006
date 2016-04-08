@@ -47,12 +47,16 @@ void setup() {
 	// Get factory ID from sensor:
 	// (Just for fun, you don't need to do this to operate the sensor)
 	
-	double ID;
+	char ID[8];
 
 	if (tempNHum.getDeviceID(ID)) {
 		Serial.print("Got Sensor Part ID: 0X");
 		// Default value of MSB 0x06
-		Serial.println(ID,HEX);
+		for(int i = 0; i < sizeof(ID); i++) {
+			Serial.print(ID[i],HEX);
+		}
+		Serial.println();
+		
 	}
 	// Most library commands will return true if communications was successful,
 	// and false if there was a problem. You can ignore this returned value,

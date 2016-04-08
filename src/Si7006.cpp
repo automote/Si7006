@@ -162,22 +162,22 @@ boolean Si7006::setHeaterControl(byte heaterCurrent){
 	return(writeByte(Si7006_WRITE_HEATER_CONTR,heaterCurrent));
 }
 
-boolean Si7006::getDeviceID(double &deviceID) {
+boolean Si7006::getDeviceID(char (&deviceID)[8]) {
 	// Gets the Device ID of the chip
 	// Default value of MSB 0x06
 	// Returns true (1) if successful, false (0) if there was an I2C error
 	// (Also see getError() below)
 	
-	unsigned long tempDeviceID;
-	//char deviceID[8];
+	char tempDeviceID[4];
 	// read first 4 bytes
 	if(read4ByteData(Si7006_READ_ID_LOW_0,Si7006_READ_ID_LOW_1,tempDeviceID)) {
-		deviceID = (double)tempDeviceID;
+		strcpy(deviceID, tempDeviceID);
 		//deviceID <<= 32;
 		
 		// read the next 4 bytes
 		if(read4ByteData(Si7006_READ_ID_HIGH_0,Si7006_READ_ID_HIGH_1,tempDeviceID)) {
-			deviceID += double(tempDeviceID) * pow(2,32);
+			strcat(deviceID, tempDeviceID);
+			//deviceID += double(tempDeviceID) * pow(2,32);
 			// return if successful
 			return(true);
 		}
@@ -409,10 +409,10 @@ boolean Si7006::read1ByteData(byte address1, byte address2, byte &value) {
 	return(false);
 }
 
-boolean Si7006::read4ByteData(byte address1, byte address2, unsigned long &value) {
+boolean Si7006::read4ByteData(byte address1, byte address2, char (&value)[4]) {
 	// Reads an unsigned long (32 bits) from a Si7006 address (high byte first)
 	// Address: Si7006 register addresses (0 to 15), high byte first
-	// Value will be set to stored unsigned long
+	// Value will be set to stored 4 byte character array
 	// Returns true (1) if successful, false (0) if there was an I2C error
 	// (Also see getError() above)
 	
@@ -428,10 +428,10 @@ boolean Si7006::read4ByteData(byte address1, byte address2, unsigned long &value
 		Wire.requestFrom(_i2c_address,4);
 		if (Wire.available() == 4)
 		{
-			value |= Wire.read() << 24;
-			value |= Wire.read() << 16;
-			value |= Wire.read() << 8;
-			value |= Wire.read();
+			value[3] |= Wire.read();
+			value[2] |= Wire.read();
+			value[1] |= Wire.read();
+			value[0] |= Wire.read();
  			return(true);
 		}
 	}
