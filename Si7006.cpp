@@ -216,7 +216,7 @@ boolean Si7006::getTemperature(float &temperature, boolean mode) {
 	
 	// Check if temperature is correct by ANDing with 0xFFFC
 	if(tempTemperature & 0xFFFC) {
-		temperature = (172.72 * tempTemperature)/65536 - 46.85;
+		temperature = (172.72 * (float)tempTemperature)/65536 - 46.85;
 		return(true);
 	}
 	
@@ -232,7 +232,7 @@ boolean Si7006::getOldTemperature(float &temperature) {
 	if(readUInt(Si7006_READ_OLD_TEMP,tempTemperature)) {
 		// Check if temperature is correct by ANDing with 0xFFFC
 		if(tempTemperature & 0xFFFC) {
-			temperature = (172.72 * tempTemperature)/65536 - 46.85;
+			temperature = (172.72 * (float)tempTemperature)/65536 - 46.85;
 			return(true);
 		}
 	}
@@ -261,7 +261,7 @@ boolean Si7006::getHumidity(float &humidity, boolean mode) {
 	
 	// Check if humidity is correct by ANDing with 0xFFFE
 	if(tempHumidity & 0xFFFE) {
-		humidity = (125 * tempHumidity)/65536 - 6;
+		humidity = (125 * (float)tempHumidity)/65536 - 6;
 		return(true);
 	}
 	
